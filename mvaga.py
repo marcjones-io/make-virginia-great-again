@@ -1,6 +1,7 @@
 # make virginia great '''again''' for the first time
 
 import csv
+from collections import Counter as ctr
 
 #open csv files
 data = []
@@ -15,14 +16,12 @@ finecostspaid,finecostspaiddate,gender,locality,name,offensedate,operatorlicense
 operatorlicensesuspensiontimedays,probationstarts,probationtimedays,probationtype,race,restrictionenddate,\
 restrictionstartdate,sentencesuspendedtimedays,sentencetimedays,status,vasap,court_fips = ([] for i in range(40))
 
-#variables im interested
-num_arrests, num_felonies, num_misdemeanors, jan, feb, mar, apr, may, jun, jul, aug, sep, octb, nov, dec = (0 for i in range(15))
+#variables im interested in
+finescost_revenue, num_arrests, num_felonies, num_misdemeanors, num_amended, jan, feb, mar, apr, may, \
+jun, jul, aug, sep, octb, nov, dec = (0 for i in range(17))
 
 #read data into lists
-def efficiently_read(entry):
-	# written by:
-	# for things in somelist:
-	# print str(things).lower()+'.append(entry[\''+str(things)+'\''+'])'
+def read_entries(entry):
 	amendedcode.append(entry['AmendedCode'])
 	complainant.append(entry['Complainant'])
 	locality.append(entry['Locality'])
@@ -64,15 +63,18 @@ def efficiently_read(entry):
 	sentencesuspendedtimedays.append(entry['SentenceSuspendedTimeDays'])
 	fileddate.append(entry['FiledDate'])
 	
-
 for entry in data:
-	efficiently_read(entry)
+	read_entries(entry)
+	# if entry['FineCostsPaid'] == 'Paid':
+	# 	finescost_revenue += float(str(entry['Fine']).strip().strip('$').strip()) + float(str(entry['Costs']).strip().strip('$').strip())
 	if entry['ArrestDate'] != '':
 		num_arrests += 1
 	if entry['CaseType'] == 'Felony':
 		num_felonies += 1
 	elif entry['CaseType'] == 'Misdemeanor':
 		num_misdemeanors += 1
+	if entry['AmendedCharge'] != '':
+		num_amended += 1
 	if str(entry['FiledDate'])[:2] == '01':
 		jan += 1
 	elif str(entry['FiledDate'])[:2] == '02':
@@ -98,38 +100,55 @@ for entry in data:
 	elif str(entry['FiledDate'])[:2] == '12':
 		dec += 1
 	
-
-
 #identify all the keys in the dict and 
 categories = ([x for x in data[0].keys()])
 
-output = 'Information on VA District Court Data Set\n\n'
+output = 'Univestigated Summary VA District Court Data Set 			by Marc Jones\n\n'
 
-output += '# of categories: ' + str(len(categories))+'\n'
-output += 'categories: ' + str(categories)[1:-1] + '\n\n'
+output += ' - - -  # CATEGORIES: ' + str(len(categories))+'\n'
+output += ' - - -  CATEGORIES: ' + str(categories)[1:-1] + '\n\n'
 
-output += '# of genders: ' + str(len(set(gender)))+'\n'
-output += 'genders: ' + str(set(gender))[5:-2] +'\n\n'
+#do we respect lgbtq people?
+gender_set =  set(gender)
+output += ' - - -  # GENDERS: ' + str(len(gender_set))+'\n'
+output += ' - - -  GENDERS: ' + str(gender_set)[5:-2] +'\n\n'
 
-output += '# of ethnicities: ' + str(len(set(race)))+'\n'
-output += 'ethnicities: ' + str(set(race))[5:-2] +'\n\n'
+#find top 5-1000 or so of following categories
+ethnic_set = set(race)
+output += ' - - -  # ETHNICITIES: ' + str(len(ethnic_set))+'\n'
+output += ' - - -  ETHNICITIES: ' + str(ethnic_set)[5:-2] +'\n'
+output += ' - - -  TOP 5 ETHNICITIES: ' + str(ctr(race).most_common(5))+'\n\n'
+#perhaps more defined ethnic categories can help us identify who needs better serves
 
-output += '# of entries/charges: ' + str(len(data)) + '\n'
-output += '# of charges by month: \n' + \
+#why some months over others
+output += ' - - -  # ENTRIES/CHARGES: ' + str(len(data)) + '\n'
+output += ' - - -  # CHARGES BY MONTH: \n' + \
 		'		jan - '+str(jan)+'\n		feb - '+str(feb)+'\n		mar - '+str(mar)+\
 		'\n		apr - '+str(apr)+'\n 		may - '+str(may)+'\n		jun - '+str(jun)+\
 		'\n		jul - '+str(jul)+'\n		aug - '+str(aug)+'\n		sep - '+str(sep)+\
 		'\n		oct - '+str(octb)+'\n		nov - '+str(nov)+'\n		dec - '+str(dec)+'\n\n'
+# output += ' - - -  $ REVENUE GENERATED: $' + str(finescost_revenue) + '\n\n'
 
-output += '# of plaintiffs: ' + str(len(set(name)))+'\n'
-output += '# of arrests: ' + str(num_arrests)+'\n'
-output += '# of complainants: ' + str(len(set(complainant)))+'\n\n'
 
-output += '# of felonies charged: ' + str(num_felonies) +'\n'
-output += '# of misdemeanors charged: ' + str(num_misdemeanors)+'\n\n'
+output += ' - - -  # PLAINTIFFS: ' + str(len(set(name)))+'\n'
+output += ' - - -  # ARRESTS: ' + str(num_arrests)+'\n'
+output += ' - - -  # COMPLAINANTS: ' + str(len(set(complainant)))+'\n'
+output += ' - - -  TOP 25 COMPLAINANTS: ' + str(ctr(complainant).most_common(25))+'\n\n'
 
-output += '# of codes violated: ' + str(len(set(codesection)))+'\n'
-output += 'citation codes: ' + str(sorted(set(codesection)))[5:-2] +'\n\n'
+output += ' - - -  # FELONIES CHARGED: ' + str(num_felonies) +'\n'
+output += ' - - -  # MISDEMEANORS CHARGED: ' + str(num_misdemeanors)+'\n'
+output += ' - - -  # AMENDED CHARGES: ' + str(num_amended)+'\n'
+output += ' - - -  TOP 50 CHARGES: ' + str(ctr(charge).most_common(50))+'\n\n'
+
+fips_set = set(court_fips)
+output += ' - - -  # COURT_FIPS: ' + str(len(fips_set))+'\n'
+output += ' - - -  TOP 25 FIPS: ' + str(ctr(court_fips).most_common(25))+'\n'
+output += ' - - -  COURT FIPS: ' + str(sorted(fips_set))[5:-2] +'\n\n'
+
+code_set = set(codesection)
+output += ' - - -  # CODES VIOLATED: ' + str(len(code_set))+'\n'
+output += ' - - -  TOP 25 CODES CITED: ' + str(ctr(codesection).most_common(25))+'\n'
+output += ' - - -  CITATION CODES: ' + str(sorted(code_set))[5:-2] +'\n\n'
 
 filewriter = open('output.txt', 'w')
 filewriter.write(output)
